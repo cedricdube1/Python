@@ -1,0 +1,18 @@
+stages:
+  - package
+before_script:
+  - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+  
+variables:
+  DOCKER_HOST: tcp://172.24.67.199:2375
+  
+image: $CI_REGISTRY/build/docker:stable
+
+package:build:
+  stage: package 
+  only: 
+    - master
+  script:
+  - docker build --no-cache -t $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME/buildimage:latest -f ./buildimage/Dockerfile .
+  - docker push $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME/buildimage
+  when: manual
