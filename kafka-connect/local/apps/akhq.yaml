@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: akhq  
+  namespace: "igbi-kafka-connect"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: akhq
+  template:
+    metadata:
+      labels:
+        app: akhq
+    spec:
+      containers:
+      - name: akhq
+        image: artifactory.tools1-az1.digi.is/epea-docker-pull/tchiotludo/akhq
+        ports:
+        - containerPort: 8080
+        env:
+        - name: AKHQ_CONFIGURATION
+          value: |
+            akhq:
+              connections:
+                kafka-server:
+                  properties:
+                    bootstrap.servers: "broker:29092"
+                  schema-registry:
+                    url: "http://schemaregistry:8081"
+                  connect:
+                    - name: "IGBI_CONNECT"
+                      url: "http://igbi-kafka-connect-host:8083"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: akhq
+  namespace: "igbi-kafka-connect"
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+  selector:
+    app: akhq                      

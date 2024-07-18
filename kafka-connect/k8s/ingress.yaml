@@ -1,0 +1,19 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: igbi-kafka-connect-host
+spec:
+  gateways:
+  - gateway.default.svc.cluster.local
+  hosts:
+  - $CI_ENVIRONMENT_HOST
+  http:
+  - timeout: 20s
+    route:
+    - destination: 
+        host: igbi-kafka-connect-host
+        port: 
+          number: 80
+    retries:
+      attempts: 3
+      perTryTimeout: 15s

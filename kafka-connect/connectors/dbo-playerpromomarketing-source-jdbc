@@ -1,0 +1,27 @@
+{
+	"name": "EVT_IGBI_KAFKA_PLAYERPROMOMARKETING-jdbc-source",  
+	"config": {
+	  "connector.class": "io.confluent.connect.jdbc.JdbcSourceConnector",
+	  "tasks.max": 1,
+	  "key.converter": "io.confluent.connect.avro.AvroConverter",
+	  "value.converter": "io.confluent.connect.avro.AvroConverter",
+	  "key.converter.schema.registry.url": "http://schemaregistry:8081",
+	  "value.converter.schema.registry.url": "http://schemaregistry:8081",
+	  "connection.url": "jdbc:sqlserver://CPTBIDev02.capetown.fwslash.net;databaseName=dbPromotions",
+	  "connection.user": "svc_IGIKafkaUser",
+	  "connection.password": "1g1K@fK@u53r!@#",
+	   "transforms": "route",
+	  "transforms.route.type": "org.apache.kafka.connect.transforms.RegexRouter",
+	  "transforms.route.regex": ".*",   
+	  "transforms.route.replacement" : "EVT_DOSCPT_IGBI_LOCAL_PLAYERPROMOMARKETING",
+	  "mode": "timestamp",
+	  "timestamp.column.name": "LastModified",
+	  "numeric.precision.mapping": "true",
+	  "numeric.mapping": "best_fit",
+	  "query": "SELECT * FROM (SELECT [CustomerID],[UserID],[CasinoId],[GamingServerId],[PlayerLifecycle],[Eligible],[PrimaryOffer],[CouponValue],[ValidFrom],[ValidTo],[BirthdayOffer],[StartDate],[EndDate],[SuggestedBonus],[BehaviourCat],[CustomerMajoritySegment],[CustomerPurchaseLifeTimeSegment],[SoftLapsedDays],[SoftLapsedReason],[GameGroupCat1],[GameGroupCat2],[GameGroupCat3],[ABTestFlag],[lastModified] FROM [dbPromotions].[dbo].[PlayerPromoMarketing] WITH (NOLOCK)) AS PlayerPromoMarketing",
+	  "table.type":"TABLE",
+	  "poll,interval.ms": "250",
+	  "batch.max.rows": "10000",
+	  "topics": "EVT_DOSCPT_IGBI_LOCAL_PLAYERPROMOMARKETING"
+	}
+  }

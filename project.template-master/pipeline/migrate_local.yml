@@ -1,0 +1,125 @@
+.migrate_local:
+  variables:
+    SERVER_NAME: ""
+    USER: ""
+    PASSWORD: ""
+    SCRIPT_LOCATION: "migration"
+    TRACK_ONLY: "false"
+    DEPLOYMENT_SIMULATION: "false"
+    COMMAND_TIMEOUT: ""
+    TRANSACTION_WRAP: "false"
+    DROP_DATABASE: "false"
+    TRACKING_SCHEMA: "grateDeployment"
+    DEPLOYMENT_TYPE: "deployment"
+  artifacts:
+    expose_as: 'Migration Log'
+    paths:
+      - migrationLog.txt
+    when: always
+  script:
+    - source ${BUILD_VAR_SOURCE}
+    - source ${SETUP_VAR_SOURCE}
+    - |
+        # ONLY TRY DEPLOYMENT IF THIS SHOULD NOT BE TREATED AS AN IMAGE ONLY
+        if [[ "${IMAGE_ONLY}" == "false" || "${IMAGE_ONLY_APPLIES}" == "false" ]];
+        then
+        
+          # DEFINE COMMAND TIMEOUT FROM CONFIG
+          if [ "${COMMAND_TIMEOUT}" == "" ]; then
+            COMMAND_TIMEOUT="${MIGRATION_COMMAND_TIMEOUT_DEFAULT}"         
+          fi
+
+          # DETERMINE THE SERVER TO EXECUTE AGAINST. IF THIS IS LOCALLY SCOPED, USE K8s IP
+          if [ "${SERVER_NAME}" == "k8s" ]; then
+            echo "Using k8s hosted SQL Server at: ${SQLSERVER_SERVICE_IP}" >> $CI_PROJECT_DIR/migrationLog.txt
+            SERVER_NAME=$SQLSERVER_SERVICE_IP        
+          fi
+
+          DEPENDENCY_SEQUENCE=$(kubectl exec -n $K8S_NAMESPACE $GRATE_POD -- sh -c "cat ./deploymentVars.json | jq -r '.DeploymentSequence[] | select( .Type == \"${DEPLOYMENT_TYPE}\" ) | .Name' | paste -s -d ',' -" )
+
+          echo "Processing for migrations ${DEPENDENCY_SEQUENCE}" > $CI_PROJECT_DIR/migrationLog.txt
+          echo "Default timeout ${MIGRATION_COMMAND_TIMEOUT_DEFAULT}" >> $CI_PROJECT_DIR/migrationLog.txt
+          echo "Used timeout ${COMMAND_TIMEOUT}" >> $CI_PROJECT_DIR/migrationLog.txt
+          echo "K8s Namespace: ${K8S_NAMESPACE}" >> $CI_PROJECT_DIR/migrationLog.txt
+          echo "Grate POD for: ${GRATE_POD}" >> $CI_PROJECT_DIR/migrationLog.txt
+
+          # USE THE SAME CHILD PATH AND ITERATE THROUGH EACH MIGRATION IN THE DEPLOYMENT VARS
+          ORIGINAL_SCRIPT_LOCATION=${SCRIPT_LOCATION}
+
+          # FOR EACH MIGRATION, ITERATE THROUGH THE DATABASE IN SEQUENCE PER DEPLOYMENT VARS
+          IFS=',';
+          for DEPENDENCY_MIGRATION in $(echo "$DEPENDENCY_SEQUENCE"); do
+            TRACKING_SCHEMA_SUFFIX="${DEPENDENCY_MIGRATION//-/_}"
+            # FOR OUR DEPLOYMENT, MIGRATION WILL BE ITS NAME
+            if [ "${DEPLOYMENT_TYPE}" == "deployment" ]; then
+              TRACKING_SCHEMA_SUFFIX="${MIGRATION_NAME//-/_}"
+            fi
+            USED_TRACKING_SCHEMA="${TRACKING_SCHEMA}_${TRACKING_SCHEMA_SUFFIX}"
+
+            echo "Processing for migration ${DEPENDENCY_MIGRATION}" >> $CI_PROJECT_DIR/migrationLog.txt
+
+            # DETERMINE THE MIGRATION SEQUENCE
+            MIGRATION_SEQUENCE=$(kubectl exec -n $K8S_NAMESPACE $GRATE_POD -- sh -c "cat ./deploymentVars.json | jq -r '.DeploymentSequence[] | select( .Name == \"${DEPENDENCY_MIGRATION}\" ) | \"\( .DatabaseSequence | join( \",\" ) )\"'" )
+            echo "Processing for database list ${MIGRATION_SEQUENCE}" >> $CI_PROJECT_DIR/migrationLog.txt
+
+            # FOR EACH MIGRATION, ITERATE THROUGH THE DATABASE IN SEQUENCE PER DEPLOYMENT VARS
+            for DATABASE_NAME in $(echo "$MIGRATION_SEQUENCE"); do
+              DATABASE_NAME=${DATABASE_NAME%% }
+              DATABASE_NAME=${DATABASE_NAME# }
+              DATABASE_NAME_CLEANED=$(echo ${DATABASE_NAME} | tr '[:upper:]' '[:lower:]')
+              SCRIPT_LOCATION=./$DEPENDENCY_MIGRATION/${DATABASE_NAME_CLEANED}/${ORIGINAL_SCRIPT_LOCATION}
+
+              # FOR OUR DEPLOYMENT, CODE WILL BE AT ROOT
+              if [ "${DEPLOYMENT_TYPE}" == "deployment" ]; then
+                SCRIPT_LOCATION=./${DATABASE_NAME_CLEANED}/${ORIGINAL_SCRIPT_LOCATION}
+              fi
+  
+              echo "Processing for: ${SCRIPT_LOCATION}" >> $CI_PROJECT_DIR/migrationLog.txt
+              SCRIPT_LOCATION_EXISTS=$(kubectl exec -n $K8S_NAMESPACE $GRATE_POD -- sh -c "[ -d \"${SCRIPT_LOCATION}\" ] && echo \"true\" || echo \"false\"" )
+
+              if [ "${SCRIPT_LOCATION_EXISTS}" == "true" ]; then
+                if [ "${TRACK_ONLY}" == "true" ];
+                then
+                  echo "Running in Baseline Mode to track only without deploying" >> $CI_PROJECT_DIR/migrationLog.txt
+                  kubectl exec -n $K8S_NAMESPACE $GRATE_POD -- grate \
+                  --connectionstring="Server=${SERVER_NAME};Database=${DATABASE_NAME};User Id=${USER};Password=${PASSWORD};Encrypt=False" \
+                  --version=${IMAGE_TAG} \
+                  --folders="${SCRIPT_LOCATION}/folderSettings.txt" \
+                  --environment="${ENV_DEPLOYMENT}" \
+                  --databasetype="sqlserver" \
+                  --silent \
+                  --drop=${DROP_DATABASE} \
+                  --dryrun=${DEPLOYMENT_SIMULATION} \
+                  --commandtimeout=${COMMAND_TIMEOUT} \
+                  --transaction=${TRANSACTION_WRAP} \
+                  --verbosity="Information" \
+                  --schema=${USED_TRACKING_SCHEMA} \
+                  --files="${SCRIPT_LOCATION}" \
+                  --baseline \
+                  >> $CI_PROJECT_DIR/migrationLog.txt;
+                else
+                  echo "Running in Deployment mode" >> $CI_PROJECT_DIR/migrationLog.txt
+                  kubectl exec -n $K8S_NAMESPACE $GRATE_POD -- grate \
+                  --connectionstring="Server=${SERVER_NAME};Database=${DATABASE_NAME};User Id=${USER};Password=${PASSWORD};Encrypt=False" \
+                  --version=${IMAGE_TAG} \
+                  --folders="${SCRIPT_LOCATION}/folderSettings.txt" \
+                  --environment="${ENV_DEPLOYMENT}" \
+                  --databasetype="sqlserver" \
+                  --silent \
+                  --drop=${DROP_DATABASE} \
+                  --dryrun=${DEPLOYMENT_SIMULATION} \
+                  --commandtimeout=${COMMAND_TIMEOUT} \
+                  --transaction=${TRANSACTION_WRAP} \
+                  --verbosity="Information" \
+                  --schema=${USED_TRACKING_SCHEMA} \
+                  --files="${SCRIPT_LOCATION}" \
+                  >> $CI_PROJECT_DIR/migrationLog.txt; 
+                fi
+              else
+                echo "Scripts do not exist in this location. Continuing." >> $CI_PROJECT_DIR/migrationLog.txt
+              fi
+            done;
+          done;
+        else
+          echo "Skipping database deployment for IMAGE_ONLY=true" > $CI_PROJECT_DIR/migrationLog.txt;
+        fi

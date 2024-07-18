@@ -1,0 +1,56 @@
+stages:
+ - prepare
+ - package
+
+variables:
+  DOCKER_HOST: tcp://172.24.67.199:2375
+  # STANDARD VAR DECLARATIONS
+  # BUILD FILE USED FOR PROJECT IMAGE BUILD
+  BUILD_FILE_LOCATION: ./Dockerfile
+  # REGISTRY FOR IMAGE
+  PROJECT_IMAGE_REGISTRY: artifactory.tools1-az1.digi.is/epea-docker-local
+  # BASE IMAGE USED FOR RUNNING MIGRATION
+  PROJECT_IMAGE_BUILD: artifactory.tools1-az1.digi.is/epea-docker-local/igaming-insights-producer
+
+Prepare:
+  image: registry.digi.is/bi-platform-apps/sonar.scanner.v5:814502
+  stage: prepare
+  rules:
+    - changes:
+        - "app/**/*"
+        - Dockerfile
+        - .gitlab-ci.yml
+    - if: '$CI_MERGE_REQUEST_EVENT_TYPE == "detached"'
+      when: never
+  script:
+    - chmod +x ./scripts/prepare.sh
+    - ./scripts/prepare.sh
+  artifacts:
+    paths:
+    - variables 
+
+Package - Producer image:
+  stage: package
+  dependencies:
+    - Prepare
+  image: $CI_REGISTRY/build/docker:stable
+  rules:
+    - changes:
+        - "app/**/*"
+        - Dockerfile
+        - .gitlab-ci.yml  
+  script:
+  - source $CI_PROJECT_DIR/variables
+  - echo IMAGE_TAG is $IMAGE_TAG
+  - BUILD_IMAGE="${PROJECT_IMAGE_BUILD}"
+  - echo "Docker Build Version Image ${BUILD_IMAGE}"
+  - echo "${BUILD_IMAGE}"
+  - echo "Login Registry"
+  - echo "${ARTIFACTORY_TOKEN}" | docker login ${PROJECT_IMAGE_REGISTRY} --username "${ARTIFACTORY_USER}" --password-stdin
+  - docker build --no-cache -f ${BUILD_FILE_LOCATION} -t ${BUILD_IMAGE} .
+  - docker tag ${BUILD_IMAGE} ${BUILD_IMAGE}:$IMAGE_TAG
+  - docker push ${BUILD_IMAGE}:$IMAGE_TAG
+  - echo "Docker Version Image pushed ${BUILD_IMAGE}:$IMAGE_TAG}"
+  - docker tag ${BUILD_IMAGE} ${BUILD_IMAGE}:latest
+  - docker push ${BUILD_IMAGE}:latest
+  - echo "Docker Latest pushed ${BUILD_IMAGE}:latest"

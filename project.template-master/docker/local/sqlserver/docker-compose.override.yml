@@ -1,0 +1,7 @@
+version: "3.7"
+
+services:
+# STANDARD: PORT MAPPING ONLY USED ON LOCAL MACHINE
+  sqlserver:
+    ports:
+      - 1433:1433

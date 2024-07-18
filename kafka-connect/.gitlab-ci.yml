@@ -1,0 +1,92 @@
+stages:
+  - deploy_connector_host
+  - delete_connector_config
+  - deploy_connector_config  
+  - teardown
+
+variables:
+  DOCKER_HOST: tcp://172.24.67.199:2375
+  ADVERTISED_HOST_NAME_DEV: igbi-kafka-connect.orange.cpt
+  BOOTSTRAP_SERVERS_DEV: cptkdevdisco.capetown.fwslash.net:9093
+  SCHEMA_REGISTRY_DEV: cptschdev.capetown.fwslash.net
+  CONNECTOR_NAME_DEV: EVT_DOSCPT_IGBI_LOCAL_KC
+
+Deploy Connect Host-Orange:
+  stage: deploy_connector_host
+  tags: [ orange_cpt ]
+  image: $CI_REGISTRY/build/kubectl:v2
+  rules:
+    - changes:
+        - "k8s/*"
+        - .gitlab-ci.yml
+    - if: '$CI_MERGE_REQUEST_EVENT_TYPE == "detached"'
+      when: never
+    - if: $CI_COMMIT_BRANCH == "master"
+      when: always 
+  environment:
+    name: Dev
+    url: https://igbi-kafka-connect-host.orange.cpt
+  script:
+    - ADVERTISED_HOST_NAME=$ADVERTISED_HOST_NAME_DEV
+    - echo ADVERTISED_HOST_NAME is $ADVERTISED_HOST_NAME
+    - BOOTSTRAP_SERVERS=$BOOTSTRAP_SERVERS_DEV
+    - echo BOOTSTRAP_SERVERS is $BOOTSTRAP_SERVERS
+    - SCHEMA_REGISTRY=$SCHEMA_REGISTRY_DEV
+    - echo SCHEMA_REGISTRY is $SCHEMA_REGISTRY
+    - CONNECTOR_NAME=$CONNECTOR_NAME_DEV
+    - echo CONNECTOR_NAME is $CONNECTOR_NAME
+    - apply k8s
+    #- kubectl rollout status deployment/igbi-kafka-connect-host
+  variables:
+      zone: Dev
+      region: cpt
+      K8S_NAMESPACE: igbi-kafka-connect
+
+Deploy Connector Configs - Orange:
+  stage: deploy_connector_config
+  tags: [ orange_cpt ]
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  environment:
+    name: Dev
+  script:
+    - POD_NAME=$(kubectl get pods -l app=igbi-kafka-connect-host -o jsonpath='{.items[0].metadata.name}')
+    - echo $POD_NAME
+    - kubectl cp ./connectors/dbo-playerpromomarketing-sink-jdbc $POD_NAME:/usr/local/scripts/connector-config.json
+    - kubectl exec $POD_NAME -- /bin/sh /usr/local/scripts/deploy-connector.sh EVT_IGBI_KAFKA_PLAYERPROMOMARKETING-jdbc-source
+  variables:
+    K8S_NAMESPACE: igbi-kafka-connect
+
+Delete Connector Configs - Orange:
+  stage: delete_connector_config
+  tags: [ orange_cpt ]
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  environment:
+    name: Dev
+  except:
+    - master
+  script:
+    - POD_NAME=$(kubectl get pods -l app=igbi-kafka-connect-host -o jsonpath='{.items[0].metadata.name}')
+    - echo $POD_NAME
+    - kubectl exec $POD_NAME -- /bin/sh /usr/local/scripts/delete-connector.sh source-connector-dbo-player
+  variables:
+    K8S_NAMESPACE: igbi-kafka-connect
+
+Teardown - Orange:
+  stage: teardown
+  tags: [ orange_cpt ]
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  environment:
+    name: Dev
+  except:
+    - master
+  script:
+    - POD_NAME=$(kubectl get pods -l app=igbi-kafka-connect-host -o jsonpath='{.items[0].metadata.name}')
+    - echo $POD_NAME
+    - kubectl exec $POD_NAME -- /bin/sh /usr/local/scripts/delete-all-connectors.sh
+    - kubectl delete namespace igbi-kafka-connect
+  variables:
+    K8S_NAMESPACE: igbi-kafka-connect
+

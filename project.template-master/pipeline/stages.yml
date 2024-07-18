@@ -1,0 +1,14 @@
+stages:
+  - prepare
+  - build
+  - setup
+  - dependency-baseline
+  - dependency-migrate
+  - dependency-test
+  - baseline
+  - migrate
+  - test
+  - analyze
+  - cleanup
+  - log
+  - release

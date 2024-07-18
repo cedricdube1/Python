@@ -1,0 +1,123 @@
+stages:
+- deploy
+- scaledown
+- scaleup
+
+
+variables:
+  DOCKER_HOST: tcp://172.24.67.199:2375
+
+####################################################################################################
+############################################ DEV : START ###########################################
+####################################################################################################
+
+Dev - Deploy:
+  tags: [ orange_cpt ]
+  except:
+    - master
+  stage: deploy
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  before_script:
+    - echo "Deploy to Dev"
+  environment:
+    name: Dev
+  script:
+    ########## Player Promo Marketing ##########
+    - configmap playerpromomarketing-config playerpromomarketing/config.dev.properties
+    - apply playerpromomarketing/container.dev.yaml
+    - kubectl rollout status deployment/igbi-dev-producer-playerpromomarketing    
+  variables:
+    K8S_NAMESPACE: igbi-dev-producer-kfk
+
+Dev - Scale Up:
+  tags: [ orange_cpt ]
+  except:
+    - master
+  stage: scaleup
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: igbi-dev-producer-kfk
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment igbi-dev-producer-playerpromomarketing --replicas=1
+
+Dev - Scale Down:
+  tags: [ orange_cpt ]
+  except:
+    - master
+  stage: scaledown
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: igbi-dev-producer-kfk
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment igbi-dev-producer-playerpromomarketing --replicas=0
+
+   
+############################################ DEV : END #############################################
+
+####################################################################################################
+########################################### PROD : START ###########################################
+####################################################################################################
+
+####################################### PROD ENVIRONMENT - START###########################################
+
+Prod - Deploy:
+  tags: [ green_cpt ]
+  only:
+    - master
+  stage: deploy
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  script:
+    - echo "Deploy to Prod"
+  environment:
+    name: Prd
+  before_script:
+    ########## Player Promo Marketing ##########
+    - configmap playerpromomarketing-config playerpromomarketing/config.prod.properties
+    - apply playerpromomarketing/container.prod.yaml
+    - kubectl rollout status deployment/igbi-prod-producer-playerpromomarketing
+  variables:
+    K8S_NAMESPACE: igbi-prod-producer-kfk
+    
+Prod - Scale Up:
+  tags: [ green_cpt ]
+  only:
+    - master
+  stage: scaleup
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: igbi-prod-producer-kfk
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment igbi-prod-producer-playerpromomarketing --replicas=1
+
+Prod - Scale Down:
+  tags: [ green_cpt ]
+  only:
+    - master
+  stage: scaledown
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: igbi-prod-producer-kfk
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment igbi-prod-producer-playerpromomarketing --replicas=0
+
+####################################### PROD ENVIRONMENT  : END #############################################
+
+
+################################## PROD ENVIRONMENT kfk2 : START ###########################################
+################################## PROD ENVIRONMENT kfk2 : END #############################################  
+
+########################################### PROD : END #############################################

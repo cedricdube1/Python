@@ -1,0 +1,1 @@
+Consumer templates used to pull data from Kafka

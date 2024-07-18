@@ -1,0 +1,75 @@
+                                            #Lookup - Development.txt
+                                            =========================
+
+2021-09-06 / HP: Initial development.
+
+2021-07-05 / GB: Added / changed the following objects:
+                 - 0.Lookup - Drop All Objects.sql (added):
+                   - DROP PROCEDURE IF EXISTS [Lookup].[SetSystemStream];
+                   - DROP FUNCTION IF EXISTS [Lookup].[GetTransactionGroupIDFromCode];
+                   - DROP FUNCTION IF EXISTS [Lookup].[GetTransactionCategoryIDFromCode];
+                   - DROP FUNCTION IF EXISTS [Lookup].[GetSystemStreamIDFromCode];
+                   - DROP FUNCTION IF EXISTS [Lookup].[GetSystemStreamIDFromName];
+                   - ALTER TABLE [Lookup].[SystemStream] SET (SYSTEM_VERSIONING = OFF);
+                   - DROP TABLE IF EXISTS [Lookup].[SystemStream];
+                   - DROP TABLE IF EXISTS [Lookup].[SystemStream_History];
+                 - 3.Lookup - Tables.sql:
+                   - Added [Lookup].[SystemStream/Histoy]
+                   - Changed [Lookup].[TransactionGroup/History]:
+                     - Renamed [UK_TransactionGroup] -> [UK1_TransactionGroup]
+                     - Added column [TransactionGroupCode] VARCHAR(5) NOT NULL
+                     - Added constraint [UK2_TransactionGroup]
+                   - Changed [Lookup].[TransactionTypeMap/History]:
+                     - Added column [SystemStreamID] [SMALLINT] NOT NULL
+                     - Added constraint [FK_TransactionTypeMap_SystemStream]
+                     - Changed constraint [UK_TransactionTypeMap]
+                 - 5.Lookup - Functions.sql:
+                   - Added [Lookup].[GetSystemStreamIDFromCode]
+                   - Added [Lookup].[GetSystemStreamIDFromName]
+                   - Added [Lookup].[GetTransactionGroupIDFromCode]
+                   - Changed [Lookup].[GetTransactionGroupIDFromName]
+                   - Added [Lookup].[GetTransactionCategoryIDFromCode]
+                   - Changed [Lookup].[GetTransactionCategoryIDFromName]
+                 - 6.Lookup - Views.sql:
+                   - Changed [Lookup].[vTransactionClassification]
+                   - Changed [Lookup].[vAccountTransactionType]
+                   - Changed [Lookup].[vAdjustmentTransactionType]
+                   - Changed [Lookup].[vCashinTransactionType]
+                   - Changed [Lookup].[vPayoutTransactionType]
+                   - Changed [Lookup].[vPurchaseTransactionType]
+                   - Changed [Lookup].[vSportsTransactionType]
+                   - Changed [Lookup].[vWagerTransactionType]
+                 - 7.Lookup - Procedures.sql:
+                   - Added [Lookup].[SetSystemStream]
+                   - Changed [Lookup].[SetTransactionGroup]
+                   - Changed [Lookup].[SetTransactionClassification]
+                   - Changed [Lookup].[SetTransactionTypeMap]
+                 - 99.5.Lookup - Setup - TransactionType.sql:
+                   - Added [Lookup].[SetSystemStream] calls
+                   - Changed [Lookup].[SetTransactionGroup] calls
+
+-- Dependency tree --
+[Lookup].[TransactionGroup] / Table                          Done
+- [Lookup].[GetTransactionGroupIDFromName] / UDF             Done
+- [Lookup].[SetTransactionGroup] / SP                        Done
+- [Lookup].[TransactionClassification] / Table               Done
+  - [Lookup].[TransactionTypeMap] / Table                    Done
+    - [Lookup].[SetTransactionClassification] / SP           Done
+      - [Lookup].[SetTransactionTypeMap] / SP                Done
+    - [Lookup].[vAccountTransactionType] / View              Done
+    - [Lookup].[vAdjustmentTransactionType] / View           Done
+      - [DraftKings_US_??].[Stage_Adjustment] / SP (X3*)     N/A
+      - [Pala_US_??].[Stage_Adjustment] / SP (X4)            N/A
+    - [Lookup].[vCashinTransactionType] / View               Done
+      - [Pala_US_??].[Stage_CashinAllocation] / SP (X4)      N/A
+    - [Lookup].[vPayoutTransactionType] / View               Done
+      - [Pala_US_??].[Stage_CasinoPayout] / SP (X4)          N/A
+    - [Lookup].[vPurchaseTransactionType] / View             Done
+      - [Pala_US_??].[Stage_Purchase] / SP (X4)              N/A
+    - [Lookup].[vSportsTransactionType] / View               Done
+      - [DraftKings_US_??].[Stage_SportsPayout] / SP (X4)    N/A
+      - [DraftKings_US_??].[Stage_SportsWagerBet] / SP (X4)  N/A
+    - [Lookup].[vWagerTransactionType] / View                Done
+      - [Pala_US_??].[Stage_CasinoWager] / SP (X4)           N/A
+  - [Lookup].[vTransactionClassification] / View             Done
+* PA is missing

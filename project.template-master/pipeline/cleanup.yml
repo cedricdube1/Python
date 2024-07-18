@@ -1,0 +1,4 @@
+.cleanup:
+  script:
+    - echo "Removing namespace ${K8S_NAMESPACE}"
+    - kubectl delete namespace "${K8S_NAMESPACE}" --wait=false

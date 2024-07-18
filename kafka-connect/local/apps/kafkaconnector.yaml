@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: igbi-kafka-connect-host
+  namespace: "igbi-kafka-connect"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: igbi-kafka-connect-host
+  template:
+    metadata:   
+      labels:
+        app: igbi-kafka-connect-host
+    spec:
+      containers:
+      - name: igbi-kafka-connect-host
+        #image: artifactory.tools1-az1.digi.is/epea-docker-local/ep-kafka-connect
+        image: artifactory.tools1-az1.digi.is/epea-docker-local/kafka-connect-base-build:latest
+        resources:
+          requests:
+            cpu: 1000m
+            memory: 4000Mi
+          limits:
+            memory: 5000Mi
+            cpu: 3000m
+        ports:
+        - containerPort: 8083
+        - containerPort: 8000
+        env:
+        - name: CONNECT_BOOTSTRAP_SERVERS
+          value: 'broker:29092'
+        - name: CONNECT_REST_ADVERTISED_HOST_NAME
+          value: igbi-kafka-connect-host.local.cpt
+
+        - name: CONNECT_GROUP_ID
+          value: compose-connect-group
+        - name: CONNECT_CONFIG_STORAGE_TOPIC
+          value: EVT_DOSCPT_IGBI_LOCAL_KC_OFFSETS_CONFIGS
+        - name: CONNECT_OFFSET_STORAGE_TOPIC
+          value: EVT_DOSCPT_IGBI_LOCAL_KC_OFFSETS
+        - name: CONNECT_STATUS_STORAGE_TOPIC
+          value: EVT_DOSCPT_IGBI_LOCAL_KC_STATUS
+
+        - name: CONNECT_REPLICATION_FACTOR
+          value: "1"
+        - name: CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR
+          value: '1'
+        - name: CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR
+          value: '1'
+        - name: CONNECT_STATUS_STORAGE_REPLICATION_FACTOR
+          value: '1'
+        - name: CONNECT_OFFSET_FLUSH_INTERVAL_MS
+          value: '10000'        
+           
+        - name: CONNECT_KEY_CONVERTER
+          value: org.apache.kafka.connect.storage.StringConverter
+        - name: CONNECT_VALUE_CONVERTER
+          value: io.confluent.connect.avro.AvroConverter
+        - name: CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL
+          value: http://schemaregistry:8081
+        - name: CONNECT_TOPIC_CREATION_ENABLE
+          value: "TRUE"
+
+        # Log4J
+        - name: CONNECT_LOG4J_LOGGERS
+          value: "org.apache.kafka.connect.runtime.rest=WARN,org.reflections=ERROR"
+        - name: CONNECT_LOG4J_ROOT_LOGLEVEL
+          value: ERROR
+        - name: CONNECT_LOG4J_APPENDER_STDOUT_LAYOUT_CONVERSIONPATTERN
+          value: "[%d] %p %X{connector.context}%m (%c:%L)%n"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: igbi-kafka-connect-host
+  namespace: "igbi-kafka-connect"
+  labels:
+    app: igbi-kafka-connect-host
+spec:
+  type: ClusterIP
+  selector:
+    app: igbi-kafka-connect-host
+  ports:
+  - name: igbi-kafka-connect-host
+    port: 8083
+    targetPort: 8083
+  - name: host
+    port: 8000
+    targetPort: 8000          

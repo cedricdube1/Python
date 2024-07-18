@@ -1,0 +1,3 @@
+onlyOnce=type:Once
+onlyChanged=type:AnyTime
+everyRun=type:EveryTime

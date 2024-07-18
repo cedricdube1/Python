@@ -1,0 +1,24 @@
+{
+  "name": "EVT_IGBI_KAFKA_PLAYERPROMOMARKETING-debezium-source",  
+  "config": {
+    "tasks.max": 1,
+    "connector.class": "io.debezium.connector.sqlserver.SqlServerConnector", 
+    "topic.prefix": "CPTBIDev02", 
+    "database.hostname": "CPTBIDev02.capetown.fwslash.net", 
+    "database.port": "1433", 
+    "database.user": "svc_IGIKafkaUser", 
+    "database.password": "1g1K@fK@u53r!@#", 
+    "database.names": "dbPromotions", 
+    "database.encrypt": "false",
+    "table.include.list": "dbo.PlayerPromo", 
+	"column.include.list": "dbo.PlayerPromo.CustomerID,dbo.PlayerPromo.UserID,dbo.PlayerPromo.CasinoId,dbo.PlayerPromo.GamingServerId,dbo.PlayerPromo.PlayerLifecycle,dbo.PlayerPromo.Eligible,dbo.PlayerPromo.PrimaryOffer,dbo.PlayerPromo.CouponValue,dbo.PlayerPromo.ValidFrom,dbo.PlayerPromo.ValidTo,dbo.PlayerPromo.BirthdayOffer,dbo.PlayerPromo.StartDate,dbo.PlayerPromo.EndDate,dbo.PlayerPromo.SuggestedBonus,dbo.PlayerPromo.BehaviourCat,dbo.PlayerPromo.CustomerMajoritySegment,dbo.PlayerPromo.CustomerPurchaseLifeTimeSegment,dbo.PlayerPromo.SoftLapsedDays,dbo.PlayerPromo.SoftLapsedReason,dbo.PlayerPromo.GameGroupCat1,dbo.PlayerPromo.GameGroupCat2,dbo.PlayerPromo.GameGroupCat3,dbo.PlayerPromo.ABTestFlag,dbo.PlayerPromo.lastModified",
+    "transforms": "route",
+    "transforms.route.type": "org.apache.kafka.connect.transforms.RegexRouter",
+    "transforms.route.regex": ".*",   
+    "transforms.route.replacement" : "EVT_DOSCPT_IGBI_LOCAL_PLAYERPROMOMARKETING", 
+    "database.history.kafka.bootstrap.servers": "broker:29092", 
+    "database.history.kafka.topic": "EVT_DOSCPT_IGBI_LOCAL_PLAYERPROMOMARKETING",
+    "key.converter":"io.confluent.connect.avro.AvroConverter",
+    "value.converter":"io.confluent.connect.avro.AvroConverter"
+  }
+}

@@ -1,0 +1,19 @@
+version: "3.7"
+
+services:
+# STANDARD
+  base:
+    container_name: ${BASE_CONTAINER}
+    image: ${BASE_IMAGE}
+    stdin_open: true
+    tty: true
+    working_dir: /app/data
+    network_mode: host
+
+# STANDARD
+  migration:
+    container_name: ${COMPOSE_PROJECT_NAME}_migration_${CONTAINER_NAME_SUFFIX}
+    image: ${MIGRATION_IMAGE}
+    tty: true
+    depends_on:
+      - base

@@ -1,0 +1,24 @@
+.setup:
+  artifacts:
+    paths:
+    - setup
+    when: always
+  before_script:
+    - git clone -q --depth 1 https://gitlab-ci-token:${CI_BUILD_TOKEN}@${PROJECT_PATH_KUBERNETES_TEMPLATES} "k8s"
+  script:
+    - source ${BUILD_VAR_SOURCE}
+    - echo K8S_NAMESPACE is "${K8S_NAMESPACE}"
+    - |
+        if [ "${DEPLOY_SQLSERVER}" == "true" ]; then
+           apply k8s/sqlserver.yml
+           SQLSERVER_POD=$(kubectl get pods -n "${K8S_NAMESPACE}" -l app=sqlserver -o jsonpath="{.items[0].metadata.name}")
+           SQLSERVER_SERVICE_IP=$(kubectl get svc -n "${K8S_NAMESPACE}" sqlserver-service -o jsonpath='{.spec.clusterIP}')
+           while [[ $(kubectl get pods -n "${K8S_NAMESPACE}" -l app=sqlserver -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do echo "waiting for sqlserver" && sleep 5; done
+           echo export SQLSERVER_POD="${SQLSERVER_POD}" >> $SETUP_VAR_SOURCE
+           echo export SQLSERVER_SERVICE_IP="${SQLSERVER_SERVICE_IP}" >> $SETUP_VAR_SOURCE
+        fi
+    - apply k8s/grate.yml
+    - GRATE_POD=$(kubectl get pods -n "${K8S_NAMESPACE}" -l app=base -o jsonpath="{.items[0].metadata.name}")
+    - while [[ $(kubectl get pods -n "${K8S_NAMESPACE}" -l app=base -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do echo "waiting for grate" && sleep 5; done
+    - echo export GRATE_POD="${GRATE_POD}" >> $SETUP_VAR_SOURCE
+

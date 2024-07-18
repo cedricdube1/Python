@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: epdm-dev-igamplat-consumer-playerevent
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: $CI_ENVIRONMENT_SLUG
+      service: epdm-dev-igamplat-consumer-playerevent
+  template:
+    metadata:
+      labels:
+        app: $CI_ENVIRONMENT_SLUG
+        service: epdm-dev-igamplat-consumer-playerevent
+    spec:
+      containers:
+        - name: epdm-dev-igamplat-consumer-playerevent
+          image: registry.digi.is/bi-platform-apps/consumer-image/consumer:latest
+          resources:
+            requests:
+              memory: 110Mi
+              cpu: 70m
+            limits:
+              memory: 350Mi
+              cpu: 250m
+          env:
+            - name: SQL_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: bi-plat-cpt-dev-secret
+                  key: sqlusername
+            - name: SQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: bi-plat-cpt-dev-secret
+                  key: sqlpassword
+            - name: SQL_USERNAME_MONITOR
+              valueFrom:
+                secretKeyRef:
+                  name: bi-plat-cpt-dev-secret
+                  key: sqlusername_monitor
+            - name: SQL_PASSWORD_MONITOR
+              valueFrom:
+                secretKeyRef:
+                  name: bi-plat-cpt-dev-secret
+                  key: sqlpassword_monitor
+            - name: KAFKA_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: bi-plat-cpt-dev-secret
+                  key: kafkausername
+            - name: KAFKA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: bi-plat-cpt-dev-secret
+                  key: kafkapassword
+          envFrom:
+            - configMapRef:
+                name: playerevent-config

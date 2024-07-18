@@ -1,0 +1,14 @@
+beforeMigration=01.beforeMigration
+alterDatabase=02.alterDatabase
+runAfterCreateDatabase=03.runAfterCreateDatabase
+runBeforeUp=04.runBeforeUp
+up=05.up
+runFirstAfterUp=06.runFirstAfterUp
+functions=07.functions
+views=08.views
+sprocs=09.sprocs
+triggers=10.triggers
+indexes=11.indexes
+runAfterOtherAnyTimeScripts=12.runAfterOtherAnyTimeScripts
+permissions=13.permissions
+afterMigration=14.afterMigration

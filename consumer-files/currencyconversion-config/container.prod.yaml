@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: epdm-prod-igamplat-consumer-currencyconversion
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: $CI_ENVIRONMENT_SLUG
+      service: epdm-prod-igamplat-consumer-currencyconversion
+  template:
+    metadata:
+      labels:
+        app: $CI_ENVIRONMENT_SLUG
+        service: epdm-prod-igamplat-consumer-currencyconversion
+    spec:
+      containers:
+        - name: epdm-prod-igamplat-consumer-currencyconversion
+          image: registry.digi.is/bi-platform-apps/consumer-image/consumer:latest
+          resources:
+            requests:
+              memory: 110Mi
+              cpu: 70m
+            limits:
+              memory: 660Mi
+              cpu: 420m
+          env:
+            - name: KAFKA_USERNAME
+              value: $KAFKA_USERNAME
+            - name: KAFKA_PASSWORD
+              value: $KAFKA_PASSWORD
+            - name: SQL_USERNAME
+              value: $SQL_USERNAME
+            - name: SQL_PASSWORD
+              value: $SQL_PASSWORD
+            - name: SQL_USERNAME_MONITOR
+              value: $SQL_USERNAME_MONITOR
+            - name: SQL_PASSWORD_MONITOR
+              value: $SQL_PASSWORD_MONITOR
+          envFrom:
+            - configMapRef:
+                name: currencyconversion-config

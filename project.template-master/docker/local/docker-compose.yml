@@ -1,0 +1,40 @@
+version: "3.7"
+
+services:
+# STANDARD
+  sqlserver:
+    container_name: ${COMPOSE_PROJECT_NAME}_sqlserver_${CONTAINER_NAME_SUFFIX}
+    image: artifactory.tools1-az1.digi.is/epea-docker-ms/mssql/server:2017-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_AGENT_ENABLED=True
+      - MSSQL_SA_PASSWORD=sql@dm1n
+      - MSSQL_PID=Developer
+    networks:
+      default:
+        aliases:
+          - sqlserver
+
+# STANDARD
+  base:
+    container_name: ${BASE_CONTAINER}
+    image: ${BASE_IMAGE}
+    stdin_open: true
+    tty: true
+    working_dir: /app/data
+    networks:
+      default:
+        aliases:
+          - base
+    depends_on:
+      - sqlserver
+
+
+# PER DEPENDENCY. VARIES BASED ON REQUIREMENTS
+  # my_dependency:
+  #   container_name: ${COMPOSE_PROJECT_NAME}_my_dependency_${CONTAINER_NAME_SUFFIX}
+  #   image: artifactory.tools1-az1.digi.is/epea-docker-local/fintech-image-db-migration/my_dependency:latest
+  #   tty: true
+  #   depends_on:
+  #     - sqlserver
+  #     - base

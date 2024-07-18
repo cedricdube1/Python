@@ -1,0 +1,94 @@
+# -----------------------------------------------------------------------
+# RULES
+# -----------------------------------------------------------------------
+.rules-prod:
+  tags: [dubk8s-az1-manta-prod]
+  rules:
+    # NEVER ON PR
+    - if: '$CI_MERGE_REQUEST_EVENT_TYPE == "detached"'
+      when: never      
+    - if: $CI_MERGE_REQUEST_ID
+      when: never
+    # ALWAYS ON TAGGING AND MASTER
+    - if: $CI_COMMIT_TAG && '$CI_COMMIT_BRANCH == "master"'
+      changes:
+        - "config/**/*"
+        - "image/**/*"
+        - "src/**/*"
+        - .gitlab-ci.yml
+        - GitVersion.yml
+      when: on_success
+    # NEVER ON ANY UNSPECIFIED CONDITION          
+    - when: never
+    
+# -----------------------------------------------------------------------
+# Baseline
+# -----------------------------------------------------------------------
+Prod-Baseline:
+  extends: 
+    - .migrate
+    - .rules-prod
+  image: $PROJECT_IMAGE_GRATE
+  dependencies:
+    - Prepare
+  stage: baseline
+  allow_failure: false
+  retry: 1
+  variables:
+    TRACK_ONLY: "true"
+    TRANSACTION_WRAP: "false"
+    SERVER_NAME: "${PROD_SQLSERVER}"
+    USER: "${PROD_SQL_USER}"
+    PASSWORD: "${PROD_SQL_PWD}"
+    SCRIPT_LOCATION: "baseline"
+
+# -----------------------------------------------------------------------
+# Migrate
+# -----------------------------------------------------------------------
+Prod-Migrate:
+  extends: 
+    - .migrate
+    - .rules-prod
+  image: $PROJECT_IMAGE_GRATE
+  dependencies:
+    - Prepare
+  stage: migrate
+  allow_failure: false
+  retry: 1
+  variables:
+    TRANSACTION_WRAP: "true"
+    SERVER_NAME: "${PROD_SQLSERVER}"
+    USER: "${PROD_SQL_USER}"
+    PASSWORD: "${PROD_SQL_PWD}"
+    SCRIPT_LOCATION: "migration"
+
+# -----------------------------------------------------------------------
+# Release
+# -----------------------------------------------------------------------
+Prod-Release-Image:
+  extends: 
+    - .build
+  rules:
+    # NEVER ON PR
+    - if: '$CI_MERGE_REQUEST_EVENT_TYPE == "detached"'
+      when: never      
+    - if: $CI_MERGE_REQUEST_ID
+      when: never
+    # ALWAYS ON TAGGING AND MASTER
+    - if: $CI_COMMIT_TAG && '$CI_COMMIT_BRANCH == "master"'
+      changes:
+        - "image/**/*"
+        - "src/**/*"
+        - .gitlab-ci.yml
+        - GitVersion.yml
+      when: on_success
+    # NEVER ON ANY UNSPECIFIED CONDITION      
+    - when: never
+  image: $DOCKER_BUILD_IMAGE
+  dependencies:
+    - Prepare
+  stage: build
+  allow_failure: false
+  retry: 1
+  variables:
+    BUILD_FILE_LOCATION: ${PROJECT_PATH_IMAGE_BUILD_FILE_LOCATION_PROD}

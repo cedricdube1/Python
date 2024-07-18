@@ -1,0 +1,59 @@
+#include:
+#  - project: fintech.hvpm.mssql/ci.cd.templates/build.templates
+#    ref: 1.0.0
+#    file: /pipeline/variables.yml
+#  - project: fintech.hvpm.mssql/ci.cd.templates/build.templates
+#    ref: 1.0.0
+#    file: /pipeline/stages.yml
+#  - project: fintech.hvpm.mssql/ci.cd.templates/build.templates
+#    ref: 1.0.0
+#    file: /pipeline/setup.yml
+#  - project: fintech.hvpm.mssql/ci.cd.templates/build.templates
+#    ref: 1.0.0
+#    file: /pipeline/migrate.dependency.yml
+#  - project: fintech.hvpm.mssql/ci.cd.templates/build.templates
+#    ref: 1.0.0
+#    file: /pipeline/migrate.yml
+#  - project: fintech.hvpm.mssql/ci.cd.templates/build.templates
+#    ref: 1.0.0
+#    file: /pipeline/build.yml
+#  - project: fintech.hvpm.mssql/ci.cd.templates/build.templates
+#    ref: 1.0.0
+#    file: /pipeline/cleanup.yml
+#  - project: fintech.hvpm.mssql/ci.cd.templates/build.templates
+#    ref: 1.0.0
+#    file: /pipeline/jobs/jobs.prepare.yml
+#  - project: fintech.hvpm.mssql/ci.cd.templates/build.templates
+#    ref: 1.0.0
+#    file: /pipeline/jobs/jobs.analyze.yml
+#  - project: fintech.hvpm.mssql/ci.cd.templates/build.templates
+#    ref: 1.0.0
+#    file: /pipeline/jobs/jobs.local.dependency.yml
+#  - project: fintech.hvpm.mssql/ci.cd.templates/build.templates
+#    ref: 1.0.0
+#    file: /pipeline/jobs/jobs.local.yml
+#  - project: fintech.hvpm.mssql/ci.cd.templates/build.templates
+#    ref: 1.0.0
+#    file: /pipeline/jobs/jobs.develop.yml
+#  - project: fintech.hvpm.mssql/ci.cd.templates/build.templates
+#    ref: 1.0.0
+#    file: /pipeline/jobs/jobs.master.yml
+#  - project: fintech.hvpm.mssql/ci.cd.templates/build.templates
+#    ref: 1.0.0
+#    file: /pipeline/jobs/jobs.tag.yml
+
+ include:
+    - local: /pipeline/stages.yml
+    - local: /pipeline/setup.yml
+    - local: /pipeline/migrate.dependency.yml     # new file
+    - local: /pipeline/migrate.local.yml   
+    - local: /pipeline/migrate.yml
+    - local: /pipeline/build.yml
+    - local: /pipeline/cleanup.yml
+    - local: /pipeline/jobs/jobs.prepare.yml
+    - local: /pipeline/jobs/jobs.analyze.yml           nothing inside
+    - local: /pipeline/jobs/jobs.local.dependency.yml  nothing inside
+    - local: /pipeline/jobs/jobs.local.yml
+    - local: /pipeline/jobs/jobs.develop.yml
+    - local: /pipeline/jobs/jobs.master.yml
+    - local: /pipeline/jobs/jobs.tag.yml

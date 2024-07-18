@@ -1,0 +1,29 @@
+.build:
+  variables:
+    BUILD_FILE_LOCATION: ""
+  script:
+    - source ${BUILD_VAR_SOURCE}
+    - echo "Docker Build Version Image ${BUILD_IMAGE}"
+    - echo "${BUILD_IMAGE}"
+    - |
+        docker build --no-cache -f ${BUILD_FILE_LOCATION} \
+                     --label "image.maintainer=$PROJECT_DOMAIN_MAINTAINER" \
+                     --label "image.application=$PROJECT_DOMAIN_APPLICATION" \
+                     --label "image.deployment=$MIGRATION_NAME" \
+                     --label "image.domain=$PROJECT_DOMAIN" \
+                     --label "image.release.version=$RELEASE_TAG" \
+                     --label "image.release.project=$CI_PROJECT_NAME" \
+                     -t ${BUILD_IMAGE} ./src
+    - | 
+        if [ $PUSH_IMAGE == true ]; then
+          echo "Login Registry"
+          echo "${ARTIFACTORY_TOKEN}" | docker login ${PROJECT_IMAGE_REGISTRY} --username "${ARTIFACTORY_USER}" --password-stdin
+          if [ $PUSH_VERSION == true ]; then
+            docker tag ${BUILD_IMAGE} ${BUILD_IMAGE}:${RELEASE_TAG}
+            docker push ${BUILD_IMAGE}:${RELEASE_TAG}
+            echo "Docker Version Image pushed ${BUILD_IMAGE}:${RELEASE_TAG}"
+          fi
+          docker tag ${BUILD_IMAGE} ${BUILD_IMAGE}:latest
+          docker push ${BUILD_IMAGE}:latest
+          echo "Docker Latest pushed ${BUILD_IMAGE}:latest"
+        fi

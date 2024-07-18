@@ -1,0 +1,9 @@
+                                            #Common - Development
+                                            ====================================
+To Deploy:
+           Replace dbSurge with relevant DB name e.g. dbSurge
+2020-10-02 / HP : Initial development
+2020-11-02 / HP : Revised Logging and Config
+2021-09-03 / HP : Revision for Surge ETL:
+			      Remove SB components
+			      Change FG_DATA_DATAFLOW to PRIMARY

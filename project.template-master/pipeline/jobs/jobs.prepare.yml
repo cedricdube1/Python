@@ -1,0 +1,167 @@
+# -----------------------------------------------------------------------
+# Prepare
+# -----------------------------------------------------------------------
+Prepare:
+  tags: [] # errors on gitversion when using tagged runner
+  artifacts:
+    paths:
+    - variables
+    when: always
+  rules:
+    # NEVER ON A PR, WHEN RELEVANT CHANGES ARE DETECTED
+    - if: '$CI_MERGE_REQUEST_EVENT_TYPE != "detached"'
+      changes:
+        - "config/**/*"
+        - "image/**/*"
+        - "src/**/*"
+        - .gitlab-ci.yml
+        - GitVersion.yml
+      when: always        
+    # NEVER ON PR
+    - if: '$CI_MERGE_REQUEST_EVENT_TYPE == "detached"'
+      when: never 
+    # NEVER ON ANY UNSPECIFIED CONDITION  
+    - when: never      
+  image: ${PROJECT_IMAGE_BASE}
+  stage: prepare
+  allow_failure: false
+  script:
+    - |
+        # READ IN DEPLOYMENT VARS
+        if [ -f "./src/deploymentVars.json" ]; then
+          MIGRATION_COMMAND_TIMEOUT_DEFAULT=$(cat ./src/deploymentVars.json | jq -r '.DeploymentSettings.CommandTimeout')
+          MIGRATION=$(cat ./src/deploymentVars.json | jq -r '.DeploymentSettings.Migration')
+          IMAGE_ONLY=$(cat ./src/deploymentVars.json | jq -r '.DeploymentSettings.ImageOnly');
+          
+          # SET DEFAULTS
+          MIGRATION_COMMAND_TIMEOUT_DEFAULT=${MIGRATION_COMMAND_TIMEOUT_DEFAULT:-120}
+          MIGRATION=${MIGRATION:-""}
+          IMAGE_ONLY=${IMAGE_ONLY:-false}
+             
+          # TEST VALUES
+          if [ "${MIGRATION}" == "" ]; then
+            echo "MIGRATION must be supplied"
+            exit 1
+          fi
+        else
+          echo "deploymentVars.json expected in .src. Not found."
+          exit 1
+        fi
+
+        # CONFIGURE VERSIONING
+        dotnet-gitversion /updateassemblyinfo
+        
+        BRANCH_TYPE=feature
+        EXECUTE_TESTS=true
+        SONAR_ANALYSIS_MODE=false
+        PUSH_IMAGE=true
+        PUSH_VERSION=false
+        ENV_DEPLOYMENT=$PROJECT_ENVIRONMENT_DEPLOYMENT_DEFAULT
+        ENV_NAME=$PROJECT_ENVIRONMENT_NAME_DEFAULT
+        IMAGE_TAG=$(dotnet-gitversion /showvariable MajorMinorPatch)-${CI_COMMIT_SHORT_SHA}
+        IMAGE_SUFFIX=/$ENV_NAME/${CI_COMMIT_BRANCH}
+        RELEASE_TAG=$(dotnet-gitversion /showvariable MajorMinorPatch)
+        IMAGE_ONLY_APPLIES=false
+        DEPLOY_SQLSERVER=true
+        
+        if [[ ${CI_COMMIT_BRANCH} == *develop* ]]; then
+          BRANCH_TYPE=develop
+          EXECUTE_TESTS=true
+          SONAR_ANALYSIS_MODE=true
+          PUSH_IMAGE=true
+          ENV_DEPLOYMENT=$PROJECT_ENVIRONMENT_DEPLOYMENT_DEV
+          ENV_NAME=$PROJECT_ENVIRONMENT_NAME_DEV
+          IMAGE_TAG=$(dotnet-gitversion /showvariable MajorMinorPatch)-$PROJECT_ENVIRONMENT_NAME_DEV
+          IMAGE_SUFFIX=/$ENV_NAME/${CI_COMMIT_BRANCH}
+          RELEASE_TAG=$(dotnet-gitversion /showvariable MajorMinorPatch)
+          IMAGE_ONLY_APPLIES=false
+          DEPLOY_SQLSERVER=false
+        fi
+
+        if [[ ${CI_COMMIT_BRANCH} == *master* ]]; then
+          BRANCH_TYPE=master
+          EXECUTE_TESTS=true
+          SONAR_ANALYSIS_MODE=true
+          PUSH_IMAGE=true
+          ENV_DEPLOYMENT=$PROJECT_ENVIRONMENT_DEPLOYMENT_TEST
+          ENV_NAME=$PROJECT_ENVIRONMENT_NAME_TEST
+          IMAGE_TAG=$(dotnet-gitversion /showvariable MajorMinorPatch)-$PROJECT_ENVIRONMENT_NAME_TEST
+          IMAGE_SUFFIX=/$ENV_NAME/${CI_COMMIT_BRANCH}
+          RELEASE_TAG=$(dotnet-gitversion /showvariable MajorMinorPatch)
+          IMAGE_ONLY_APPLIES=true
+          DEPLOY_SQLSERVER=false
+        fi
+            
+        if [ ! -z "${CI_COMMIT_TAG}" ]; then
+          BRANCH_TYPE=release
+          EXECUTE_TESTS=false
+          SONAR_ANALYSIS_MODE=false
+          PUSH_IMAGE=true
+          PUSH_VERSION=true
+          ENV_DEPLOYMENT=$PROJECT_ENVIRONMENT_DEPLOYMENT_PROD
+          ENV_NAME=$PROJECT_ENVIRONMENT_NAME_PROD
+          IMAGE_TAG=$(dotnet-gitversion /showvariable MajorMinorPatch)
+          IMAGE_SUFFIX=$PROJECT_SUFFIX_IMAGE_TAG
+          RELEASE_TAG=$(dotnet-gitversion /showvariable MajorMinorPatch)
+          IMAGE_ONLY_APPLIES=true
+          DEPLOY_SQLSERVER=false
+        fi
+        
+        # SANITIZE INPUTS
+        MIGRATION_NAME="${MIGRATION// /}"
+        MIGRATION_NAME="${MIGRATION_NAME//./-}"
+        MIGRATION_NAME="${MIGRATION_NAME//_/-}"
+        MIGRATION_NAME=$(echo ${MIGRATION_NAME} | tr '[:upper:]' '[:lower:]')
+        IMAGE_SUFFIX="${IMAGE_SUFFIX// /}"
+        IMAGE_SUFFIX="${IMAGE_SUFFIX//./-}"
+        IMAGE_SUFFIX="${IMAGE_SUFFIX//_/-}"
+        IMAGE_SUFFIX=$(echo ${IMAGE_SUFFIX} | tr '[:upper:]' '[:lower:]')
+        
+        # CONFIGURE BUILD IMAGE
+        BUILD_IMAGE="${PROJECT_IMAGE_BUILD}/${MIGRATION_NAME}${IMAGE_SUFFIX}"
+        BASE_CONTAINER=${COMPOSE_PROJECT_NAME}_base_${PROJECT_SUFFIX_IMAGE_PIPELINE}
+        
+        # DISPLAY VARS
+        echo "*********************************************"
+        echo "Running with configuration: "
+        echo "*********************************************"
+        echo "Migration Name: ${MIGRATION_NAME}"
+        echo "Migration command timeout: $MIGRATION_COMMAND_TIMEOUT_DEFAULT"
+        echo "Build image only(no deployment): $IMAGE_ONLY"
+        echo "Push Image: ${PUSH_IMAGE}"
+        echo "*********************************************"
+        echo "Branch type: ${BRANCH_TYPE}"
+        echo "Execute tests: ${EXECUTE_TESTS}"
+        echo "Sonar analysis mode: ${SONAR_ANALYSIS_MODE}"
+        echo "Env deployment: ${ENV_DEPLOYMENT}"
+        echo "Env name: ${ENV_NAME}"
+        echo "Image Tag: ${IMAGE_TAG}"
+        echo "Release Tag: ${RELEASE_TAG}"
+        echo "Build Image: ${BUILD_IMAGE}"
+        echo "POD_NAMESPACE: ${K8S_NAMESPACE}"
+        echo "SQLServer Deploy: ${DEPLOY_SQLSERVER}"
+        echo "*********************************************"
+        
+        # OUTPUT VARS TO VARIABLES FILE FOR PIPELINE USE
+        set -e -x
+        echo export IMAGE_TAG="${IMAGE_TAG}" >> $BUILD_VAR_SOURCE
+        echo export RELEASE_TAG="${RELEASE_TAG}" >> $BUILD_VAR_SOURCE
+        echo export BRANCH_TYPE="${BRANCH_TYPE}" >> $BUILD_VAR_SOURCE
+        echo export EXECUTE_TESTS="${EXECUTE_TESTS}" >> $BUILD_VAR_SOURCE
+        echo export SONAR_ANALYSIS_MODE="${SONAR_ANALYSIS_MODE}" >> $BUILD_VAR_SOURCE
+        echo export ENV_DEPLOYMENT="${ENV_DEPLOYMENT}" >> $BUILD_VAR_SOURCE
+        echo export ENV_NAME="${ENV_NAME}" >> $BUILD_VAR_SOURCE
+        echo export BUILD_IMAGE="${BUILD_IMAGE}" >> $BUILD_VAR_SOURCE
+        echo export MIGRATION_IMAGE="${BUILD_IMAGE}" >> $BUILD_VAR_SOURCE
+        echo export PUSH_IMAGE="${PUSH_IMAGE}" >> $BUILD_VAR_SOURCE
+        echo export PUSH_VERSION="${PUSH_VERSION}" >> $BUILD_VAR_SOURCE
+        echo export MIGRATION_NAME="${MIGRATION_NAME}" >> $BUILD_VAR_SOURCE
+        echo export MIGRATION_COMMAND_TIMEOUT_DEFAULT="${MIGRATION_COMMAND_TIMEOUT_DEFAULT}" >> $BUILD_VAR_SOURCE
+        echo export IMAGE_ONLY="${IMAGE_ONLY}" >> $BUILD_VAR_SOURCE
+        echo export IMAGE_ONLY_APPLIES="${IMAGE_ONLY_APPLIES}" >> $BUILD_VAR_SOURCE
+        echo export BASE_IMAGE="${PROJECT_IMAGE_BASE}" >> $BUILD_VAR_SOURCE
+        echo export CONTAINER_NAME_SUFFIX="${PROJECT_SUFFIX_IMAGE_PIPELINE}" >> $BUILD_VAR_SOURCE
+        echo export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME}" >> $BUILD_VAR_SOURCE
+        echo export BASE_CONTAINER="${BASE_CONTAINER}" >> $BUILD_VAR_SOURCE
+        echo export POD_NAMESPACE="${K8S_NAMESPACE}" >> $BUILD_VAR_SOURCE
+        echo export DEPLOY_SQLSERVER="${DEPLOY_SQLSERVER}" >> $BUILD_VAR_SOURCE
