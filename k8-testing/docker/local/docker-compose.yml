@@ -1,0 +1,30 @@
+version: '2.2'
+
+services:
+  mongodb:
+    image: artifactory.tools1-az1.digi.is/epea-docker-pull/mongo:latest
+    restart: always
+    hostname: mongodb
+    container_name: mongodb
+    ports:
+        - "27017:27017"
+    environment:
+        MONGO_INITDB_ROOT_USERNAME: root
+        MONGO_INITDB_ROOT_PASSWORD: mongo@dm1n
+
+  mongo-express:
+    image: artifactory.tools1-az1.digi.is/epea-docker-pull/mongo-express:latest
+    restart: always
+    hostname: mongo-express
+    container_name: mongo-express
+    depends_on:
+      - mongodb
+    ports:
+      - 8081:8081
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: mongo@dm1n
+      ME_CONFIG_MONGODB_PORT: 27017
+      ME_CONFIG_MONGODB_SERVER: mongodb
+      #ME_CONFIG_MONGODB_URL: mongodb://root:mongo@dm1n@mongo:8081/
+      ME_CONFIG_BASICAUTH: false

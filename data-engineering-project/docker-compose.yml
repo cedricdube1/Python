@@ -1,0 +1,142 @@
+
+services:
+  #zookeeper:
+  #  image: artifactory.tools1-az1.digi.is/epea-docker-pull/confluentinc/cp-zookeeper:latest
+  #  hostname: zookeeper
+  #  container_name: zookeeper
+  #  ports:
+  #    - "2181:2181"
+  #  environment:
+  #    ZOOKEEPER_CLIENT_PORT: 2181
+  #    ZOOKEEPER_TICK_TIME: 2000
+  #  networks:
+  #    - airflow-kafka
+
+  #broker:
+  #  image: artifactory.tools1-az1.digi.is/epea-docker-pull/confluentinc/cp-kafka:latest
+  #  hostname: broker
+  #  container_name: broker
+  #  depends_on:
+  #    - zookeeper
+  #  ports:
+  #    - "29092:29092"
+  #    - "9093:9093"
+  #  environment:
+  #    KAFKA_BROKER_ID: 1
+  #    KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+  #    KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+  #    KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:29092,PLAINTEXT_HOST://localhost:9093
+  #    KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+  #    KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+  #    KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+  #    KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+  #    KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+  #    CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: broker:29092
+  #    CONFLUENT_METRICS_REPORTER_ZOOKEEPER_CONNECT: zookeeper:2181
+  #    CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS: 1
+  #    CONFLUENT_METRICS_ENABLE: 'false'
+  #  networks:
+  #    - airflow-kafka 
+
+  #akhq:
+  #  image: artifactory.tools1-az1.digi.is/epea-docker-pull/tchiotludo/akhq:latest
+  #  hostname: akhq
+  #  container_name: akhq
+  #  depends_on:
+  #    - zookeeper
+  #    - broker
+  #  ports:
+  #    - "8087:8080"
+  #  environment:
+  #    AKHQ_CONFIGURATION: |
+  #      akhq:
+  #        connections:
+  #          docker-kafka-server:
+  #            properties:
+  #              bootstrap.servers: "broker:29092"
+  #            schema-registry:
+  #              url: "http://schema-registry:8081" 
+  #  networks:
+  #    - airflow-kafka
+
+  #schema-registry:
+  #  image: artifactory.tools1-az1.digi.is/epea-docker-pull/confluentinc/cp-schema-registry:latest
+  #  hostname: schema-registry
+  #  container_name: schema-registry
+  #  depends_on:
+  #      - broker
+  #  ports:
+  #      - "8081:8081"
+  #  environment:
+  #      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+  #      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'broker:29092'
+  #      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+  #  networks:
+  #    - airflow-kafka 
+
+  kafka:
+    image: artifactory.tools1-az1.digi.is/epea-docker-pull/bitnami/kafka:latest
+    container_name: kafka
+    ports:
+      - '9094:9094'
+    networks:
+      - airflow-kafka
+    environment:
+      - KAFKA_CFG_NODE_ID=0
+      - KAFKA_CFG_PROCESS_ROLES=controller,broker
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka:9093
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+    volumes:
+      - kafka:/bitnami/kafka
+
+  kafka-ui:
+    container_name: kafka-ui
+    image: artifactory.tools1-az1.digi.is/epea-docker-pull/provectuslabs/kafka-ui:latest
+    ports:
+      - 8087:8080
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_CLUSTERS_0_NAME: docker-kafka-server
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: PLAINTEXT://kafka:9092
+      DYNAMIC_CONFIG_ENABLED: 'true'
+    networks:
+      - airflow-kafka
+
+  pgadmin:
+    image: artifactory.tools1-az1.digi.is/epea-docker-pull/dpage/pgadmin4:4.23
+    hostname: pgadmin
+    container_name: pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: cedric.dube0@gmail.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_LISTEN_PORT: 80
+    ports:
+      - 15432:80
+    volumes:
+      - pgadmin:/var/lib/pgadmin
+    networks:
+      - airflow-kafka
+
+  docker-proxy:
+    image: artifactory.tools1-az1.digi.is/epea-docker-pull/alpine/socat
+    hostname: docker-proxy
+    container_name: docker-proxy
+    command: "tcp-listen:2375,fork,reuseaddr unix-connect:/var/run/docker.sock"
+    ports:
+      - "2376:2375"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - airflow-kafka    
+  
+networks:
+  airflow-kafka:
+    external: true
+
+volumes:
+  pgadmin:
+  kafka:

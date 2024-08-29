@@ -1,0 +1,646 @@
+stages:
+- deploy
+- scaledown
+- scaleup
+
+variables:
+  DOCKER_HOST: tcp://172.24.67.199:2375
+
+######################## DEV ENVIRONMENT - START ########################
+Deploy - PlayerAttribute Dev:
+  tags: [ orange_cpt ]
+  except:
+    - master
+  stage: deploy
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  script:
+    - echo "Deploy to Dev"
+  environment:
+    name: Dev
+  script:
+    #- configmap playerattribute-config playerattribute-config/config.dev.properties
+    #- apply playerattribute-config/container.dev.yaml
+    #- kubectl rollout status deployment/epdm-dev-igamplat-consumer-playerattribute
+    - configmap playerevent-config playerevent-config/config.dev.properties
+    - apply playerevent-config/container.dev.yaml
+    - kubectl rollout status deployment/epdm-dev-igamplat-consumer-playerevent   
+  variables:
+    K8S_NAMESPACE: epdm-dev-igamplat-consumer-kfk
+
+#Dev - PlayerAttribute scale up:
+#  tags: [ orange_cpt ]
+#  except:
+#    - master
+#  stage: scaleup
+#  image: $CI_REGISTRY/build/kubectl:v2
+#  when: manual
+#  variables:
+#    K8S_NAMESPACE: epdm-dev-igamplat-consumer-kfk
+#  before_script:
+#    - ''
+#  script:
+#    - kubectl scale deployment epdm-dev-igamplat-consumer-playerattribute --replicas=1
+
+Dev - PlayerEvent scale up:
+  tags: [ orange_cpt ]
+  except:
+    - master
+  stage: scaleup
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: epdm-dev-igamplat-consumer-kfk
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment epdm-dev-igamplat-consumer-playerevent --replicas=1    
+
+#Dev - PlayerAttribute scale down:
+#  tags: [ orange_cpt ]
+#  except:
+#    - master
+#  stage: scaledown
+#  image: $CI_REGISTRY/build/kubectl:v2
+#  when: manual
+#  variables:
+#    K8S_NAMESPACE: epdm-dev-igamplat-consumer-kfk
+#  before_script:
+#    - ''
+#  script:
+#    - kubectl scale deployment epdm-dev-igamplat-consumer-playerattribute --replicas=0
+
+Dev - PlayerEvent scale down:
+  tags: [ orange_cpt ]
+  except:
+    - master
+  stage: scaledown
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: epdm-dev-igamplat-consumer-kfk
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment epdm-dev-igamplat-consumer-playerevent --replicas=0
+
+######################## DEV ENVIRONMENT - END ########################
+
+################################################################################################
+
+######################## PROD ENVIRONMENT - START ########################
+Deploy - kfk:
+  tags: [ green_cpt ]
+  only:
+    - master
+  stage: deploy
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  script:
+    - echo "Deploy to Prod"
+  environment:
+    name: master
+  script:
+  ########### Player Attribute
+  #  - configmap playerattribute-config playerattribute-config/config.prod.properties
+  #  - apply playerattribute-config/container.prod.yaml
+  #  - kubectl rollout status deployment/epdm-prod-igamplat-consumer-playerattribute
+  ########### Revenue Transaction
+    - configmap revenuetransaction-config revenuetransaction-config/config.prod.properties
+    - apply revenuetransaction-config/container.prod.yaml
+    - kubectl rollout status deployment/epdm-prod-igamplat-consumer-revenuetransaction
+  ########### Currency Conversion
+    - configmap currencyconversion-config currencyconversion-config/config.prod.properties
+    - apply currencyconversion-config/container.prod.yaml
+    - kubectl rollout status deployment/epdm-prod-igamplat-consumer-currencyconversion
+  ########### Player Event
+    - configmap playerevent-config playerevent-config/config.prod.properties
+    - apply playerevent-config/container.prod.yaml
+    - kubectl rollout status deployment/epdm-prod-igamplat-consumer-playerevent
+  ########### Player Account Status
+    - configmap playeraccountstatus-config playeraccountstatus-config/config.prod.properties
+    - apply playeraccountstatus-config/container.prod.yaml
+    - kubectl rollout status deployment/epdm-prod-igamplat-consumer-playeraccountstatus
+    ########### Player Contact
+    - configmap playercontact-config playercontact-config/config.prod.properties
+    - apply playercontact-config/container.prod.yaml
+    - kubectl rollout status deployment/epdm-prod-igamplat-consumer-playercontact
+    ########### Player Physical Address
+    - configmap playerphysicaladdress-config playerphysicaladdress-config/config.prod.properties
+    - apply playerphysicaladdress-config/container.prod.yaml
+    - kubectl rollout status deployment/epdm-prod-igamplat-consumer-playerphysicaladdress
+    ########### Player Document
+    - configmap playerdocument-config playerdocument-config/config.prod.properties
+    - apply playerdocument-config/container.prod.yaml
+    - kubectl rollout status deployment/epdm-prod-igamplat-consumer-playerdocument
+    ########### Player
+    - configmap player-config player-config/config.prod.properties
+    - apply player-config/container.prod.yaml
+    - kubectl rollout status deployment/epdm-prod-igamplat-consumer-player
+    ########### CasinoPlay
+    - configmap casinoplay-config casinoplay-config/config.prod.properties
+    - apply casinoplay-config/container.prod.yaml
+    - kubectl rollout status deployment/epdm-prod-igamplat-consumer-casinoplay
+    ########### End Script
+  variables:
+    K8S_NAMESPACE: epdm-prod-igamplat-consumer-kfk
+
+######### PlayerAttribute    
+################################################################################################
+#Prod - PlayerAttribute scale up:
+#  tags: [ green_cpt ]
+#  only:
+#    - master
+#  stage: scaleup
+#  image: $CI_REGISTRY/build/kubectl:v2
+#  when: manual
+#  variables:
+#    K8S_NAMESPACE: epdm-prod-igamplat-consumer-kfk
+#  before_script:
+#    - ''
+#  script:
+#    - kubectl scale deployment epdm-prod-igamplat-consumer-playerattribute --replicas=1
+
+#Prod - PlayerAttribute scale down:
+#  tags: [ green_cpt ]
+#  only:
+#    - master
+#  stage: scaledown
+#  image: $CI_REGISTRY/build/kubectl:v2
+#  when: manual
+#  variables:
+#    K8S_NAMESPACE: epdm-prod-igamplat-consumer-kfk
+#  before_script:
+#    - ''
+#  script:
+#    - kubectl scale deployment epdm-prod-igamplat-consumer-playerattribute --replicas=0
+################################################################################################
+######### RevenueTransaction    
+################################################################################################
+Prod - RevenueTransaction scale up:
+  tags: [ green_cpt ]
+  only:
+    - master
+  stage: scaleup
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: epdm-prod-igamplat-consumer-kfk
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment epdm-prod-igamplat-consumer-revenuetransaction --replicas=1
+
+Prod - RevenueTransaction scale down:
+  tags: [ green_cpt ]
+  only:
+    - master
+  stage: scaledown
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: epdm-prod-igamplat-consumer-kfk
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment epdm-prod-igamplat-consumer-revenuetransaction --replicas=0    
+################################################################################################
+######### Currency Conversion    
+################################################################################################
+Prod - Currency Conversion scale up:
+  tags: [ green_cpt ]
+  only:
+    - master
+  stage: scaleup
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: epdm-prod-igamplat-consumer-kfk
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment epdm-prod-igamplat-consumer-currencyconversion --replicas=1
+
+Prod - Currency Conversion scale down:
+  tags: [ green_cpt ]
+  only:
+    - master
+  stage: scaledown
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: epdm-prod-igamplat-consumer-kfk
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment epdm-prod-igamplat-consumer-currencyconversion --replicas=0       
+################################################################################################
+######### PlayerEvent    
+################################################################################################
+Prod - PlayerEvent scale up:
+  tags: [ green_cpt ]
+  only:
+    - master
+  stage: scaleup
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: epdm-prod-igamplat-consumer-kfk
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment epdm-prod-igamplat-consumer-playerevent --replicas=1
+
+Prod - PlayerEvent scale down:
+  tags: [ green_cpt ]
+  only:
+    - master
+  stage: scaledown
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: epdm-prod-igamplat-consumer-kfk
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment epdm-prod-igamplat-consumer-playerevent --replicas=0
+################################################################################################
+######### Player Account Status    
+################################################################################################
+Prod - Player Account Status scale up:
+  tags: [ green_cpt ]
+  only:
+    - master
+  stage: scaleup
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: epdm-prod-igamplat-consumer-kfk
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment epdm-prod-igamplat-consumer-playeraccountstatus --replicas=1
+
+Prod - Player Account Status scale down:
+  tags: [ green_cpt ]
+  only:
+    - master
+  stage: scaledown
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: epdm-prod-igamplat-consumer-kfk
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment epdm-prod-igamplat-consumer-playeraccountstatus --replicas=0 
+################################################################################################    
+######### Player Contact    
+################################################################################################
+Prod - Player Contact scale up:
+  tags: [ green_cpt ]
+  only:
+    - master
+  stage: scaleup
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: epdm-prod-igamplat-consumer-kfk
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment epdm-prod-igamplat-consumer-playercontact --replicas=1
+
+Prod - Player Contact scale down:
+  tags: [ green_cpt ]
+  only:
+    - master
+  stage: scaledown
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: epdm-prod-igamplat-consumer-kfk
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment epdm-prod-igamplat-consumer-playercontact --replicas=0 
+################################################################################################
+######### Player Physical Address    
+################################################################################################
+Prod - Player Physical Address scale up:
+  tags: [ green_cpt ]
+  only:
+    - master
+  stage: scaleup
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: epdm-prod-igamplat-consumer-kfk
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment epdm-prod-igamplat-consumer-playerphysicaladdress --replicas=1
+
+Prod - Player Physical Address scale down:
+  tags: [ green_cpt ]
+  only:
+    - master
+  stage: scaledown
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: epdm-prod-igamplat-consumer-kfk
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment epdm-prod-igamplat-consumer-playerphysicaladdress --replicas=0     
+
+################################################################################################
+######### Player Document    
+################################################################################################
+Prod - Player Document scale up:
+  tags: [ green_cpt ]
+  only:
+    - master
+  stage: scaleup
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: epdm-prod-igamplat-consumer-kfk
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment epdm-prod-igamplat-consumer-playerdocument --replicas=1
+
+Prod - Player Document scale down:
+  tags: [ green_cpt ]
+  only:
+    - master
+  stage: scaledown
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: epdm-prod-igamplat-consumer-kfk
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment epdm-prod-igamplat-consumer-playerdocument --replicas=0  
+################################################################################################
+######### Player   
+################################################################################################
+Prod - Player scale up:
+  tags: [ green_cpt ]
+  only:
+    - master
+  stage: scaleup
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: epdm-prod-igamplat-consumer-kfk
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment epdm-prod-igamplat-consumer-player --replicas=1
+
+Prod - Player scale down:
+  tags: [ green_cpt ]
+  only:
+    - master
+  stage: scaledown
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: epdm-prod-igamplat-consumer-kfk
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment epdm-prod-igamplat-consumer-player --replicas=0  
+################################################################################################
+######### Casino Play   
+################################################################################################
+Prod - Casino Play scale up:
+  tags: [ green_cpt ]
+  only:
+    - master
+  stage: scaleup
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: epdm-prod-igamplat-consumer-kfk
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment epdm-prod-igamplat-consumer-casinoplay --replicas=1
+
+Prod - Casino Play scale down:
+  tags: [ green_cpt ]
+  only:
+    - master
+  stage: scaledown
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: epdm-prod-igamplat-consumer-kfk
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment epdm-prod-igamplat-consumer-casinoplay --replicas=0        
+
+################################################################################################
+######################## PROD ENVIRONMENT - END ########################
+
+
+
+
+
+######################## PROD ENVIRONMENT kfk2 - START ########################
+Deploy - kfk2:
+  tags: [ green_cpt ]
+  only:
+    - master
+  stage: deploy
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  script:
+    - echo "Deploy to Prod"
+  environment:
+    name: master
+  script:
+   ########### Player Customer
+    - configmap playercustomer-config playercustomer-config/config.prod.properties
+    - apply playercustomer-config/container.prod.yaml
+    - kubectl rollout status deployment/epdm-prod-igamplat-consumer-playercustomer
+    ########### Player Adjustment
+    - configmap playeradjustment-config playeradjustment-config/config.prod.properties
+    - apply playeradjustment-config/container.prod.yaml
+    - kubectl rollout status deployment/epdm-prod-igamplat-consumer-playeradjustment
+    ########### Cashin Allocation
+    - configmap cashinallocation-config cashinallocation-config/config.prod.properties
+    - apply cashinallocation-config/container.prod.yaml
+    - kubectl rollout status deployment/epdm-prod-igamplat-consumer-cashinallocation
+    ########### Cashin Request
+    - configmap cashinrequest-config cashinrequest-config/config.prod.properties
+    - apply cashinrequest-config/container.prod.yaml
+    - kubectl rollout status deployment/epdm-prod-igamplat-consumer-cashinrequest   
+    ########### Cashin Reversal
+    - configmap cashinreversal-config cashinreversal-config/config.prod.properties
+    - apply cashinreversal-config/container.prod.yaml
+    - kubectl rollout status deployment/epdm-prod-igamplat-consumer-cashinreversal  
+  ########### End Script
+  variables:
+    K8S_NAMESPACE: epdm-prod-igamplat-consumer-kfk2
+################################################################################################
+######### Player Customer    
+################################################################################################
+Prod - Player Customer scale up:
+  tags: [ green_cpt ]
+  only:
+    - master
+  stage: scaleup
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: epdm-prod-igamplat-consumer-kfk2
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment epdm-prod-igamplat-consumer-playercustomer --replicas=1
+
+Prod - Player Customer scale down:
+  tags: [ green_cpt ]
+  only:
+    - master
+  stage: scaledown
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: epdm-prod-igamplat-consumer-kfk2
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment epdm-prod-igamplat-consumer-playercustomer --replicas=0
+################################################################################################
+######### Player Adjustment    
+################################################################################################
+Prod - Player Adjustment scale up:
+  tags: [ green_cpt ]
+  only:
+    - master
+  stage: scaleup
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: epdm-prod-igamplat-consumer-kfk2
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment epdm-prod-igamplat-consumer-playeradjustment --replicas=1
+
+Prod - Player Adjustment scale down:
+  tags: [ green_cpt ]
+  only:
+    - master
+  stage: scaledown
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: epdm-prod-igamplat-consumer-kfk2
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment epdm-prod-igamplat-consumer-playeradjustment --replicas=0 
+
+################################################################################################
+######### Cashin Allocation   
+################################################################################################
+Prod - Cashin Allocation scale up:
+  tags: [ green_cpt ]
+  only:
+    - master
+  stage: scaleup
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: epdm-prod-igamplat-consumer-kfk2
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment epdm-prod-igamplat-consumer-cashinallocation --replicas=1
+
+Prod - Cashin Allocation scale down:
+  tags: [ green_cpt ]
+  only:
+    - master
+  stage: scaledown
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: epdm-prod-igamplat-consumer-kfk2
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment epdm-prod-igamplat-consumer-cashinallocation --replicas=0   
+
+################################################################################################
+######### Cashin Request   
+################################################################################################
+Prod - Cashin Request scale up:
+  tags: [ green_cpt ]
+  only:
+    - master
+  stage: scaleup
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: epdm-prod-igamplat-consumer-kfk2
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment epdm-prod-igamplat-consumer-cashinrequest --replicas=1
+
+Prod - Cashin Request scale down:
+  tags: [ green_cpt ]
+  only:
+    - master
+  stage: scaledown
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: epdm-prod-igamplat-consumer-kfk2
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment epdm-prod-igamplat-consumer-cashinrequest --replicas=0          
+################################################################################################
+######### Cashin Reversal   
+################################################################################################
+Prod - Cashin Reversal scale up:
+  tags: [ green_cpt ]
+  only:
+    - master
+  stage: scaleup
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: epdm-prod-igamplat-consumer-kfk2
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment epdm-prod-igamplat-consumer-cashinreversal --replicas=1
+
+Prod - Cashin Reversal scale down:
+  tags: [ green_cpt ]
+  only:
+    - master
+  stage: scaledown
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: epdm-prod-igamplat-consumer-kfk2
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment epdm-prod-igamplat-consumer-cashinreversal --replicas=0          
+################################################################################################
+######################## PROD ENVIRONMENT kfk2 - END ########################    
+    

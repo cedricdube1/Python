@@ -26,11 +26,15 @@ Dev - Deploy:
     ########## Player Promo Marketing ##########
     - configmap playerpromomarketing-config playerpromomarketing/config.dev.properties
     - apply playerpromomarketing/container.dev.yaml
-    - kubectl rollout status deployment/igbi-dev-producer-playerpromomarketing    
+    - kubectl rollout status deployment/igbi-dev-producer-playerpromomarketing
+    ########## Player Wager Aggregation ##########
+    #- configmap playerwageraggregationdev-config playerwageraggregationdev/config.dev.properties
+    #- apply playerwageraggregationdev/container.dev.yaml
+    #- kubectl rollout status deployment/igbi-dev-producer-playerwageraggregationdev     
   variables:
     K8S_NAMESPACE: igbi-dev-producer-kfk
 
-Dev - Scale Up:
+PlayerPromoMarketing - Scale Up:
   tags: [ orange_cpt ]
   except:
     - master
@@ -44,7 +48,21 @@ Dev - Scale Up:
   script:
     - kubectl scale deployment igbi-dev-producer-playerpromomarketing --replicas=1
 
-Dev - Scale Down:
+#PlayerWagerAggregation - Scale Up:
+#  tags: [ orange_cpt ]
+#  except:
+#    - master
+#  stage: scaleup
+#  image: $CI_REGISTRY/build/kubectl:v2
+#  when: manual
+#  variables:
+#    K8S_NAMESPACE: igbi-dev-producer-kfk
+#  before_script:
+#    - ''
+#  script:
+#    - kubectl scale deployment igbi-dev-producer-playerwageraggregationdev --replicas=1    
+
+PlayerPromoMarketing - Scale Down:
   tags: [ orange_cpt ]
   except:
     - master
@@ -57,6 +75,20 @@ Dev - Scale Down:
     - ''
   script:
     - kubectl scale deployment igbi-dev-producer-playerpromomarketing --replicas=0
+
+#PlayerWagerAggregation - Scale Down:
+#  tags: [ orange_cpt ]
+#  except:
+#    - master
+#  stage: scaledown
+#  image: $CI_REGISTRY/build/kubectl:v2
+#  when: manual
+#  variables:
+#    K8S_NAMESPACE: igbi-dev-producer-kfk
+#  before_script:
+#    - ''
+#  script:
+#    - kubectl scale deployment igbi-dev-producer-playerwageraggregationdev --replicas=0    
 
    
 ############################################ DEV : END #############################################
@@ -83,10 +115,14 @@ Prod - Deploy:
     - configmap playerpromomarketing-config playerpromomarketing/config.prod.properties
     - apply playerpromomarketing/container.prod.yaml
     - kubectl rollout status deployment/igbi-prod-producer-playerpromomarketing
+    ########## Customer Segment Bands ##########
+    - configmap customersegmentbands-config customersegmentbands/config.prod.properties
+    - apply customersegmentbands/container.prod.yaml
+    - kubectl rollout status deployment/igbi-prod-producer-customersegmentbands
   variables:
     K8S_NAMESPACE: igbi-prod-producer-kfk
     
-Prod - Scale Up:
+Prod - PlayerPromoMarketing Scale Up:
   tags: [ green_cpt ]
   only:
     - master
@@ -100,7 +136,21 @@ Prod - Scale Up:
   script:
     - kubectl scale deployment igbi-prod-producer-playerpromomarketing --replicas=1
 
-Prod - Scale Down:
+Prod - CustomerSegmentBands Scale Up:
+  tags: [ green_cpt ]
+  only:
+    - master
+  stage: scaleup
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: igbi-prod-producer-kfk
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment igbi-prod-producer-customersegmentbands --replicas=1
+
+Prod - PlayerPromoMarketing Scale Down:
   tags: [ green_cpt ]
   only:
     - master
@@ -113,6 +163,20 @@ Prod - Scale Down:
     - ''
   script:
     - kubectl scale deployment igbi-prod-producer-playerpromomarketing --replicas=0
+
+Prod - CustomerSegmentBands Scale Down:
+  tags: [ green_cpt ]
+  only:
+    - master
+  stage: scaledown
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: igbi-prod-producer-kfk
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment igbi-prod-producer-customersegmentbands --replicas=0
 
 ####################################### PROD ENVIRONMENT  : END #############################################
 

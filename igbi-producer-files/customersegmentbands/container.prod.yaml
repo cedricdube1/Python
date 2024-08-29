@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: igbi-prod-producer-customersegmentbands
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: $CI_ENVIRONMENT_SLUG
+      service: igbi-prod-producer-customersegmentbands
+  template:
+    metadata:
+      labels:
+        app: $CI_ENVIRONMENT_SLUG
+        service: igbi-prod-producer-customersegmentbands
+    spec:
+      containers:
+      - name: igbi-prod-producer-customersegmentbands
+        #image: registry.digi.is/igbirepo/producers/igbi-producer-image/producer:latest
+        image: artifactory.tools1-az1.digi.is/epea-docker-local/igaming-insights-producer:latest
+        resources:
+          requests:
+            memory: 110Mi
+            cpu: 70m
+          limits:
+            memory: 660Mi
+            cpu: 420m
+        env:
+          - name: SQL_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: igbi-cpt-prod-secret
+                key: sqlusername
+          - name: SQL_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: igbi-cpt-prod-secret
+                key: sqlpassword
+          - name: KAFKA_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: igbi-cpt-prod-secret
+                key: kafkausername
+          - name: KAFKA_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: igbi-cpt-prod-secret
+                key: kafkapassword
+        envFrom:
+        - configMapRef:
+            name: customersegmentbands-config

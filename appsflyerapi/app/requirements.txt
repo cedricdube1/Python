@@ -1,0 +1,8 @@
+pandas
+requests
+APScheduler
+datagate
+datetime >= 4.3
+urllib3
+certifi
+pyodbc

@@ -1,0 +1,25 @@
+stages:
+- deploy
+- teardown
+
+variables:
+  DOCKER_HOST: tcp://172.24.67.199:2375
+
+Deploy - Dev:
+  tags: [ orange_cpt ]
+  except:
+    - master
+  stage: deploy
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  script:
+    - echo "Deploy to Dev"
+  environment:
+    name: Dev
+    url: https://mongo-express.orange.cpt
+  script:
+    - apply k8-configuration
+  variables:
+      zone: orange
+      region: cpt
+      K8S_NAMESPACE: igbi-mongo-express

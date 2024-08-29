@@ -1,0 +1,206 @@
+stages:
+ - package
+ - deploy
+ - scaledown
+ - scaleup
+
+variables:
+  DOCKER_HOST: tcp://172.24.67.199:2375
+
+
+############################################ DEV : START ###########################################
+Dev - Build Image:
+  #tags: [ orange_cpt ]
+  image: $CI_REGISTRY/build/docker:stable
+  stage: package
+  #rules:
+  #  - changes:
+  #      - "app/**/*"
+  #      - Dockerfile 
+  except: 
+    - master
+  script:
+  - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+  - docker build --no-cache -t $CI_REGISTRY_IMAGE:latest -f ./Dockerfile . 
+  - docker push $CI_REGISTRY_IMAGE:latest
+  when: manual
+
+Dev - Deploy:
+  tags: [ orange_cpt ]
+  except:
+    - master
+  stage: deploy
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  before_script:
+    - echo "Deploy to Dev"
+  environment:
+    name: Dev
+  script:
+    ########## JackpotCity app installs ##########
+    - configmap jpc-installs-config k8s_config/jpc_Installs/dev.properties
+    - apply k8s_config/jpc_Installs/deployment.dev.yaml
+    - kubectl rollout status deployment/igbi-dev-appsflyerapi-jpc-installs
+    ########## JackpotCity in-app events ##########
+    - configmap jpc-inapp-events-config k8s_config/jpc_inapp_events/dev.properties
+    - apply k8s_config/jpc_inapp_events/deployment.dev.yaml
+    - kubectl rollout status deployment/igbi-dev-appsflyerapi-jpc-inapp-events
+  variables:
+    K8S_NAMESPACE: igbi-dev-appsflyer-api
+
+DEV - JPCInstalls Scale Down:
+  tags: [ orange_cpt ]
+  except:
+    - master
+  stage: scaledown
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: igbi-dev-appsflyer-api
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment igbi-dev-appsflyerapi-jpc-installs --replicas=0
+
+DEV - JPCInstalls Scale Up:
+  tags: [ orange_cpt ]
+  except:
+    - master
+  stage: scaleup
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: igbi-dev-appsflyer-api
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment igbi-dev-appsflyerapi-jpc-installs --replicas=1
+
+DEV - JPCEvents Scale Down:
+  tags: [ orange_cpt ]
+  except:
+    - master
+  stage: scaledown
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: igbi-dev-appsflyer-api
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment igbi-dev-appsflyerapi-jpc-inapp-events --replicas=0
+
+DEV - JPCEvents Scale Up:
+  tags: [ orange_cpt ]
+  except:
+    - master
+  stage: scaleup
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: igbi-dev-appsflyer-api
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment igbi-dev-appsflyerapi-jpc-inapp-events --replicas=1
+
+############################################ DEV : END #############################################
+
+
+####################################### PROD ENVIRONMENT - START###########################################
+Prod - Build Image:
+  #tags: [ green_cpt ]
+  image: $CI_REGISTRY/build/docker:stable
+  stage: package
+  #rules:
+  #  - changes:
+  #      - "app/**/*"
+  #      - Dockerfile 
+  only: 
+    - master
+  script:
+  - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+  - docker build --no-cache -t $CI_REGISTRY_IMAGE:latest -f ./Dockerfile . 
+  - docker push $CI_REGISTRY_IMAGE:latest
+  when: manual
+
+Prod - Deploy:
+  tags: [ green_cpt ]
+  only:
+    - master
+  stage: deploy
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  before_script:
+    - echo "Deploy to Prod"
+  environment:
+    name: Prod
+  script:
+    ########## JackpotCity app installs ##########
+    - configmap jpc-installs-config k8s_config/jpc_Installs/prod.properties
+    - apply k8s_config/jpc_Installs/deployment.prod.yaml
+    - kubectl rollout status deployment/igbi-prod-appsflyerapi-jpc-installs
+    ########## JackpotCity in-app events ##########
+    - configmap jpc-inapp-events-config k8s_config/jpc_inapp_events/prod.properties
+    - apply k8s_config/jpc_inapp_events/deployment.prod.yaml
+    - kubectl rollout status deployment/igbi-prod-appsflyerapi-jpc-inapp-events
+  variables:
+    K8S_NAMESPACE: igbi-prod-appsflyer-api
+
+Prod - JPCInstalls Scale Down:
+  tags: [ green_cpt ]
+  only:
+    - master
+  stage: scaledown
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: igbi-prod-appsflyer-api
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment igbi-prod-appsflyerapi-jpc-installs --replicas=0
+
+Prod - JPCInstalls Scale Up:
+  tags: [ green_cpt ]
+  only:
+    - master
+  stage: scaleup
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: igbi-prod-appsflyer-api
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment igbi-prod-appsflyerapi-jpc-installs --replicas=1
+
+Prod - JPCEvents Scale Down:
+  tags: [ green_cpt ]
+  only:
+    - master
+  stage: scaledown
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: igbi-prod-appsflyer-api
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment igbi-prod-appsflyerapi-jpc-inapp-events --replicas=0
+
+Prod - JPCEvents Scale Up:
+  tags: [ green_cpt ]
+  only:
+    - master
+  stage: scaleup
+  image: $CI_REGISTRY/build/kubectl:v2
+  when: manual
+  variables:
+    K8S_NAMESPACE: igbi-prod-appsflyer-api
+  before_script:
+    - ''
+  script:
+    - kubectl scale deployment igbi-prod-appsflyerapi-jpc-inapp-events --replicas=1
+
+####################################### PROD ENVIRONMENT  : END ############################################# ``

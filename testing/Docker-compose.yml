@@ -1,0 +1,16 @@
+services:
+# STANDARD
+  sqlserver:
+    container_name: sqlserver
+    image: artifactory.tools1-az1.digi.is/epea-docker-ms/mssql/server:2017-latest
+    ports:
+      - "1433:1433"
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_AGENT_ENABLED=True
+      - MSSQL_SA_PASSWORD=sql@dm1n
+      - MSSQL_PID=Developer
+    networks:
+      default:
+        aliases:
+          - sqlserver

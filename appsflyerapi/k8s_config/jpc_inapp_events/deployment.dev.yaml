@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: igbi-dev-appsflyerapi-jpc-inapp-events
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: $CI_ENVIRONMENT_SLUG
+      service: igbi-dev-appsflyerapi-jpc-inapp-events
+  template:
+    metadata:
+      labels:
+        app: $CI_ENVIRONMENT_SLUG
+        service: igbi-dev-appsflyerapi-jpc-inapp-events
+    spec:
+      containers:
+      - name: igbi-dev-appsflyerapi-jpc-inapp-events
+        image: registry.digi.is/igbirepo/appsflyerapi:latest
+        resources:
+          requests:
+            memory: 110Mi
+            cpu: 70m
+          limits:
+            memory: 660Mi
+            cpu: 420m
+        env:
+          - name: SQL_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: igbi-cpt-dev-secret
+                key: sqlusername
+          - name: SQL_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: igbi-cpt-dev-secret
+                key: sqlpassword
+          - name: TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: igbi-cpt-dev-secret
+                key: token
+
+        envFrom:
+        - configMapRef:
+            name: jpc-inapp-events-config
